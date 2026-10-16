@@ -193,7 +193,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 		const IconRefreshOutline14 = pickIcon("IconRefreshOutlineRegular", "IconRefreshOutline14");
 		const IconSearchOutline16 = pickIcon("IconSearchOutlineRegular", "IconSearchOutline16");
 		const IconSparkle16 = pickIcon("IconSparkleRegular", "IconSparkle16");
-		const IconWarningOutline16$1 = pickIcon("IconWarningOutlineRegular", "IconWarningOutline16");
+		const IconWarningOutline16 = pickIcon("IconWarningOutlineRegular", "IconWarningOutline16");
 		//#endregion
 		//#region src/client/locales.ts
 		/** zh/en dictionaries for the Market settings section and install toast. */
@@ -4192,7 +4192,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 				size: 13,
 				className: Market_module_css_default.reassureOk
 			});
-			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 				size: 14,
 				className: Market_module_css_default.conflictIcon
 			});
@@ -4574,14 +4574,14 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 				children: [
 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: Market_module_css_default.recoverySummary,
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 							size: 14,
 							className: Market_module_css_default.bannerIcon
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: view.failure.summary || t("recoveryNoSummary") })]
 					}),
 					view.lastErrors.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: Market_module_css_default.recoverySummary,
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 							size: 14,
 							className: Market_module_css_default.bannerIcon
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", { children: [t("recoveryWriteFailed"), view.lastErrors.join("; ")] })]
@@ -4759,7 +4759,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: Market_module_css_default.banner,
 				children: [
-					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconWarningOutline16, {
+					/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 						size: 14,
 						className: Market_module_css_default.bannerIcon
 					}),
@@ -6679,7 +6679,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 			const remaining = findings.length - preview.length;
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 				className: Market_module_css_default.banner,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 					size: 14,
 					className: Market_module_css_default.bannerIcon
 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
@@ -11473,7 +11473,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 				return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 					redLines.filter(redLineIsUrgent).map((line) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("p", {
 						className: Market_module_css_default.warnLine,
-						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 							size: 14,
 							className: Market_module_css_default.bannerIcon
 						}), " " + redLineLabel(line)]
@@ -11672,12 +11672,12 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 										type: "button",
 										className: Market_module_css_default.cardBlockedMark,
 										onClick: openOperations,
-										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 13 }), t("queuedBadge")]
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 13 }), t("queuedBadge")]
 									}) : blocked ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 										type: "button",
 										className: Market_module_css_default.cardBlockedMark,
 										onClick: openOperations,
-										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 13 }), t("opBlockedCard")]
+										children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 13 }), t("opBlockedCard")]
 									}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 										variant: "primary",
 										size: "sm",
@@ -11894,12 +11894,12 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 											type: "button",
 											className: Market_module_css_default.cardBlockedMark,
 											onClick: openOperations,
-											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 13 }), t("queuedBadge")]
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 13 }), t("queuedBadge")]
 										}) : blocked ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
 											type: "button",
 											className: Market_module_css_default.cardBlockedMark,
 											onClick: openOperations,
-											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 13 }), t("opBlockedCard")]
+											children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 13 }), t("opBlockedCard")]
 										}) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Button, {
 											variant: "primary",
 											size: "sm",
@@ -12349,7 +12349,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 							}),
 							restoreErrors.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: Market_module_css_default.banner,
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 									size: 14,
 									className: Market_module_css_default.bannerIcon
 								}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
@@ -12461,7 +12461,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 							}),
 							activationWarnings.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: Market_module_css_default.banner,
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 									size: 14,
 									className: Market_module_css_default.bannerIcon
 								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
@@ -12483,7 +12483,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 							}),
 							tab === "installed" && configNamespaceIssues.length > 0 && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 								className: Market_module_css_default.banner,
-								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+								children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 									size: 14,
 									className: Market_module_css_default.bannerIcon
 								}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
@@ -12536,7 +12536,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 					buildsSkipped !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 						className: Market_module_css_default.banner,
 						children: [
-							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, {
+							/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, {
 								size: 14,
 								className: Market_module_css_default.bannerIcon
 							}),
@@ -14361,7 +14361,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 							]
 						}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("p", {
 							className: Market_module_css_default.migrationWarning,
-							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 14 }), t("migrateWarning")]
+							children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 14 }), t("migrateWarning")]
 						})]
 					}),
 					agentsConfirm !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Modal, {
@@ -14702,17 +14702,17 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 					}),
 					exportState === "fail" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
 						text: t("exportLogFail"),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 14 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 14 }),
 						onDone: exportToastDone
 					}),
 					favoriteError !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
 						text: localizeBilingual(favoriteError, lang),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 14 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 14 }),
 						onDone: favoriteErrorDone
 					}),
 					blockError !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
 						text: localizeBilingual(blockError, lang),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 14 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 14 }),
 						onDone: blockErrorDone
 					}),
 					blockNotice !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
@@ -14721,7 +14721,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 					}),
 					updateExemptError !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
 						text: localizeBilingual(updateExemptError, lang),
-						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 14 }),
+						icon: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 14 }),
 						onDone: updateExemptErrorDone
 					}),
 					updateExemptNotice !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
@@ -14730,7 +14730,7 @@ window.__ModuleLoader__.load({ id: "dshmarket", factory: (require) => {
 					}),
 					toggled !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Toast, {
 						text: toggled.name + " " + t(toggled.enabled ? "toastToggledOn" : "toastToggledOff"),
-						icon: toggled.enabled ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconCheckOutline16, { size: 14 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16$1, { size: 14 }),
+						icon: toggled.enabled ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconCheckOutline16, { size: 14 }) : /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconWarningOutline16, { size: 14 }),
 						onDone: toggledDone
 					})
 				]
