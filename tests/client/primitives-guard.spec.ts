@@ -5,7 +5,7 @@
  * must detect the gap and skip registration instead of throwing mid-render.
  */
 import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { apply, missingPrimitives, REQUIRED_PRIMITIVES } from '../../src/client/index.ts'
 import { ICON_ALIASES, missingIcons } from '../../src/client/icons.ts'
@@ -195,17 +195,29 @@ describe('apply() contains a throw from the host (#869)', () => {
 describe('no icon is named-imported from the primitives module (#877)', () => {
   const CLIENT = join(__dirname, '..', '..', 'src', 'client')
 
+  /** Every client source, recursively — a subdirectory is not a place to hide. */
+  function clientSources(dir: string): Array<{ path: string; text: string }> {
+    const out: Array<{ path: string; text: string }> = []
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) out.push(...clientSources(full))
+      else if (/\.tsx?$/.test(entry.name)) {
+        out.push({ path: relative(CLIENT, full), text: readFileSync(full, 'utf8') })
+      }
+    }
+    return out
+  }
+
   it('resolves every icon through the alias table instead', () => {
     const offenders: string[] = []
-    for (const name of readdirSync(CLIENT).filter(entry => /\.tsx?$/.test(entry))) {
-      const text = readFileSync(join(CLIENT, name), 'utf8')
+    for (const { path, text } of clientSources(CLIENT)) {
       for (const [, bindings] of text.matchAll(
         /(?:import|export)\s+(?:type\s+)?(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]*)\}\s*from\s*['"]@deepseek-ai\/dsh-client-ui-primitives['"]/g,
       )) {
         for (const raw of (bindings ?? '').split(',')) {
           const binding = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0]!.trim()
           // `IconProps` is a type; every other name starting with Icon is a glyph.
-          if (binding !== 'IconProps' && /^Icon[A-Z]/.test(binding)) offenders.push(`${name}: ${binding}`)
+          if (binding !== 'IconProps' && /^Icon[A-Z]/.test(binding)) offenders.push(`${path}: ${binding}`)
         }
       }
     }
