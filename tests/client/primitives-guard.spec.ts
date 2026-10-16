@@ -200,7 +200,7 @@ describe('no icon is named-imported from the primitives module (#877)', () => {
     for (const name of readdirSync(CLIENT).filter(entry => /\.tsx?$/.test(entry))) {
       const text = readFileSync(join(CLIENT, name), 'utf8')
       for (const [, bindings] of text.matchAll(
-        /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]@deepseek-ai\/dsh-client-ui-primitives['"]/g,
+        /(?:import|export)\s+(?:type\s+)?(?:[A-Za-z_$][\w$]*\s*,\s*)?\{([^}]*)\}\s*from\s*['"]@deepseek-ai\/dsh-client-ui-primitives['"]/g,
       )) {
         for (const raw of (bindings ?? '').split(',')) {
           const binding = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0]!.trim()
