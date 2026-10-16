@@ -345,6 +345,20 @@ export async function withHoistRecovery(
       : `这台宿主（官方桌面端）自己执行安装，不接受市场附加的 pnpm 参数（${unavailableOption}），所以这一步没有自动重试。 / This host (the official desktop app) runs the install itself and takes no pnpm options from the market (${unavailableOption}), so that automatic retry could not be attempted.`
     result = { ...result, stderr: `${result.stderr}\n\n${note}` }
   }
+  // pnpm can append a second rule even on success (#883, #878), including
+  // after a recovery retry or an official Desktop manager install. Repair
+  // the final file now, before another plugin operation reads it; a successful
+  // command must never be retried just because its exclusions needed merging.
+  if (ok(result) && (verb === 'add' || verb === 'remove' || verb === 'install' || verb === 'update')) {
+    try {
+      const merged = mergeDuplicateReleaseAgeExcludes(profile, profileDirectory)
+      if (merged.length > 0) {
+        logEvent('warn', 'install', `merged duplicate minimumReleaseAgeExclude rules for ${merged.join(', ')} after success (#883, #878)`)
+      }
+    } catch (error) {
+      logEvent('warn', 'install', `could not merge minimumReleaseAgeExclude after success (#883, #878): ${String(error)}`)
+    }
+  }
   return result
 }
 

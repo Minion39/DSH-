@@ -1,8 +1,9 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createOfficialDesktopRuntime, type OfficialPluginManagerLike } from '../src/official-desktop.ts'
+import { withHoistRecovery } from '../src/install.ts'
 import { routesFor, setActiveRegion } from '../src/regions.ts'
 
 const roots: string[] = []
@@ -38,6 +39,28 @@ function manager(): OfficialPluginManagerLike & {
 }
 
 describe('official Electron profile runtime', () => {
+  it('merges exclusions appended by a successful manager install before returning (#883, #878)', async () => {
+    const dir = profile()
+    const workspace = join(dir, 'pnpm-workspace.yaml')
+    const initial = 'minimumReleaseAge: 1440\nminimumReleaseAgeExclude:\n  - example@1.0.0\n'
+    writeFileSync(workspace, initial)
+    const service = manager()
+    service.installBundle.mockImplementationOnce(async () => {
+      writeFileSync(workspace, `${initial}  - example@2.0.0\n`)
+      return { application: 'restart-required', packageResult: { exitCode: 0, output: 'installed' } }
+    })
+    const runtime = createOfficialDesktopRuntime(() => service, 'desktop', dir)
+    try {
+      const result = await withHoistRecovery(runtime.runPlugin, 'desktop', ['add', 'example@2.0.0'], dir, { marketFlags: false })
+      expect(result).toMatchObject({ exitCode: 0, stdout: 'installed', cancelled: false, timedOut: false })
+      expect(readFileSync(workspace, 'utf8')).toBe(initial.replace('example@1.0.0', 'example@1.0.0 || 2.0.0'))
+      expect(service.installBundle).toHaveBeenCalledTimes(1)
+      expect(service.installBundle).toHaveBeenCalledWith('example@2.0.0', { requestId: expect.any(String) })
+    } finally {
+      await runtime.dispose()
+    }
+  })
+
   it('installs through the in-process manager and never the CLI', async () => {
     const service = manager()
     const runtime = createOfficialDesktopRuntime(() => service, 'desktop', profile())

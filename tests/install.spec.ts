@@ -4,8 +4,8 @@
  * staleness detection (#22's silent no-op).
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import type { InstallResult } from '../src/dsh-cli.ts'
@@ -15,6 +15,7 @@ import {
   RELEASE_AGE_OVERRIDE, validateAddedPlugins, withHoistRecovery,
 } from '../src/install.ts'
 import { dropUnparseableBuildKeys, profileDir } from '../src/profile.ts'
+import * as profileHelpers from '../src/profile.ts'
 import { canCreateSymlink } from './symlink-support.ts'
 
 let home: string
@@ -789,6 +790,100 @@ describe('withHoistRecovery', () => {
     }
     await withHoistRecovery(run, 'web', ['--no-frozen-lockfile', 'install'], dir)
     expect(seen[0]).toBe('minimumReleaseAgeExclude:\n  - keep@1.0.0 || 2.0.0\n')
+  })
+})
+
+describe('successful release-age cleanup (#883, #878)', () => {
+  const initial = 'minimumReleaseAge: 1440\nminimumReleaseAgeExclude:\n  - keep@1.0.0\n'
+  const appended = `${initial}  - keep@2.0.0\n`
+  const merged = initial.replace('keep@1.0.0', 'keep@1.0.0 || 2.0.0')
+
+  it.each([
+    ['add', 'thing'],
+    ['remove', 'thing'],
+    ['--no-frozen-lockfile', 'install'],
+    ['update', 'thing'],
+  ])('merges rules written by a successful %j before returning, without rerunning it', async (...args) => {
+    const dir = writeProfile({})
+    const workspace = join(dir, 'pnpm-workspace.yaml')
+    writeFileSync(workspace, initial)
+    const calls: string[][] = []
+    const success = { ...ok, stdout: 'installed', stderr: 'warning', resolvedNpmVersion: '2.0.0' }
+    const run = async (_profile: string, argv: string[]): Promise<InstallResult> => {
+      calls.push(argv)
+      expect(readFileSync(workspace, 'utf8')).toBe(initial)
+      writeFileSync(workspace, appended)
+      return success
+    }
+
+    expect(await withHoistRecovery(run, 'web', args, dir, { releaseAgeBypass: false })).toBe(success)
+    expect(readFileSync(workspace, 'utf8')).toBe(merged)
+    expect(calls).toEqual([args])
+  })
+
+  it.each(['duplicate rule', 'release age', 'network', 'hoist', 'profile lock'])('cleans the successful retry after %s without adding another retry', async failure => {
+    const dir = writeProfile({})
+    const workspace = join(dir, 'pnpm-workspace.yaml')
+    writeFileSync(workspace, initial)
+    const calls: string[][] = []
+    const args = ['add', 'thing']
+    const retryRule = '  - keep@3.0.0\n'
+    const run = async (_profile: string, argv: string[]): Promise<InstallResult> => {
+      calls.push(argv)
+      if (calls.length === 1) {
+        if (failure === 'duplicate rule') writeFileSync(workspace, appended)
+        const stderr = {
+          'duplicate rule': '{"code":"install-failed"}',
+          'release age': 'ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION',
+          network: 'ERR_PNPM_META_FETCH_FAIL request failed, reason: read ECONNRESET',
+          hoist: 'ERR_PNPM_PUBLIC_HOIST_PATTERN_DIFF',
+          'profile lock': String.raw`EPERM: operation not permitted, rename 'C:\profile\pnpm-lock.yaml.3015012533' -> 'C:\profile\pnpm-lock.yaml'`,
+        }[failure]!
+        return { ...ok, exitCode: 1, stderr }
+      }
+      writeFileSync(workspace, readFileSync(workspace, 'utf8') + retryRule)
+      return ok
+    }
+
+    expect(await withHoistRecovery(run, 'web', args, dir)).toBe(ok)
+    expect(calls).toEqual(failure === 'hoist'
+      ? [args, ['install', '--no-frozen-lockfile'], args]
+      : [args, failure === 'release age' ? ['add', RELEASE_AGE_OVERRIDE, 'thing'] : args])
+    expect(readFileSync(workspace, 'utf8')).toBe(failure === 'duplicate rule'
+      ? merged.replace('2.0.0', '2.0.0 || 3.0.0')
+      : initial.replace('keep@1.0.0', 'keep@1.0.0 || 3.0.0'))
+  })
+
+  it('leaves a file without duplicate rules byte-for-byte and does not write it', async () => {
+    const dir = writeProfile({})
+    const workspace = join(dir, 'pnpm-workspace.yaml')
+    writeFileSync(workspace, initial)
+    utimesSync(workspace, new Date(0), new Date(0))
+    const mtime = statSync(workspace).mtimeMs
+    const { run, calls } = recordingRunner()
+
+    expect(await withHoistRecovery(run, 'web', ['add', 'thing'], dir)).toBe(ok)
+    expect(readFileSync(workspace, 'utf8')).toBe(initial)
+    expect(statSync(workspace).mtimeMs).toBe(mtime)
+    expect(calls).toEqual([['add', 'thing']])
+  })
+
+  it('keeps a successful result and never reruns the operation if cleanup throws', async () => {
+    const dir = writeProfile({})
+    const calls: string[][] = []
+    const merge = vi.spyOn(profileHelpers, 'mergeDuplicateReleaseAgeExcludes')
+    try {
+      const run = async (_profile: string, args: string[]): Promise<InstallResult> => {
+        calls.push(args)
+        merge.mockImplementationOnce(() => { throw new Error('workspace is read-only') })
+        return ok
+      }
+      expect(await withHoistRecovery(run, 'web', ['add', 'thing'], dir)).toBe(ok)
+      expect(calls).toEqual([['add', 'thing']])
+      expect(merge).toHaveBeenCalledTimes(2)
+    } finally {
+      merge.mockRestore()
+    }
   })
 })
 

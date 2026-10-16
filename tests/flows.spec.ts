@@ -778,7 +778,7 @@ import { marketVersion, mountMarketRoutes } from '../src/routes.ts'
 import { RELEASE_AGE_OVERRIDE } from '../src/install.ts'
 import { resolveChannel } from '../src/channels.ts'
 import { profileDir } from '../src/profile.ts'
-import { runDshPlugin } from '../src/dsh-cli.ts'
+import { runDshPlugin, type InstallResult } from '../src/dsh-cli.ts'
 import { createOfficialDesktopRuntime } from '../src/official-desktop.ts'
 import { routesFor } from '../src/regions.ts'
 import { setRequestGateSource, setTrustedHostsSource } from '../src/http.ts'
@@ -5829,7 +5829,7 @@ describe('market self-update', () => {
     expect(v1.json.package).toMatchObject({ source: 'generation', installedVersion: '1.0.3', latestVersion: '1.2.3', updateAvailable: false })
   })
 
-  it('the market updates itself through the same flow', async () => {
+  it('the market updates itself and immediately merges appended exclusions (#883, #878)', async () => {
     // Pin the channel: with no choice on record it is derived from the
     // RUNNING build, and this repo carries a prerelease version while a beta
     // is in flight — which would send this test down the beta dist-tag it
@@ -5844,9 +5844,26 @@ describe('market self-update', () => {
       : Promise.reject(new Error('unexpected fetch')))
     const updates = await bed.dispatch('GET', '/dsh-market/updates?force=1')
     expect(updates.json.updates['dshmarket'].updateAvailable).toBe(true)
+    const workspace = join(fake.profileDir, 'pnpm-workspace.yaml')
+    const initial = 'minimumReleaseAge: 1440\nminimumReleaseAgeExclude:\n  - dshmarket@1.0.3\n'
+    writeFileSync(workspace, initial)
+    bed.dispose()
+    bed = createTestbed({}, {
+      runPlugin: async (profile, args) => {
+        const result = await runDshPlugin(profile, args) as InstallResult
+        if (result.exitCode === 0) writeFileSync(workspace, `${initial}  - dshmarket@1.2.3\n`)
+        return result
+      },
+      probePnpm: () => Promise.resolve(true),
+      provisionPnpm: () => Promise.resolve({ ok: true }),
+      cancelActive: () => false,
+    })
+    const callsBefore = fake.calls.length
     const r = await bed.dispatch('POST', '/dsh-market/update', { name: 'dshmarket' })
     expect(r.status).toBe(200)
     expect(installedSpec('dshmarket')).toBe('^1.2.3')
+    expect(fake.calls.slice(callsBefore)).toEqual([['add', 'dshmarket@1.2.3']])
+    expect(readFileSync(workspace, 'utf8')).toBe(initial.replace('dshmarket@1.0.3', 'dshmarket@1.0.3 || 1.2.3'))
   })
 })
 
