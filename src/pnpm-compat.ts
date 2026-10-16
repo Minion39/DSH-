@@ -399,8 +399,27 @@ export function classifyPnpmFailure(output: string, exitCode?: number | null): P
   // (MINIMUM_RELEASE_AGE_VIOLATION), and a later add can fail re-resolving
   // the young dep (NO_MATURE_MATCHING_VERSION). Recovery is a one-shot
   // --config.minimum-release-age=0 retry, automated in withHoistRecovery.
+  //
+  // That gate has a THIRD face, and it is the one that fails AFTER the
+  // lockfile check has said yes. pnpm skips that check when the verification
+  // cache holds a run whose recorded window is at least as wide as the
+  // current one (`canTrustPastCheck`: past >= current, pnpm's own
+  // lockfile-verified cache), and the resolver then applies the same policy
+  // from scratch. A re-resolved dependency still inside the window comes back
+  // as a `policyViolation`, which the CLI only knows how to consume through a
+  // handler it never wires on this call path — so it throws
+  // RESOLUTION_POLICY_VIOLATIONS_UNHANDLED instead of reporting anything the
+  // user can act on. Measured on the bundled pnpm 11.7.0 (DSH Desktop), with
+  // a cached pass in place: verification prints "passes supply-chain
+  // policies", and the next phase dies with "2 resolution-policy violations
+  // were produced but no handleResolutionPolicyViolations callback was wired".
+  // Same cause, same cure as the two shapes above — pnpm's hint names
+  // `setupPolicyHandlers`, which an integration calling the CLI cannot wire,
+  // so the only answer is the one-shot override. Classifying it here is what
+  // connects it to that retry; without it the raw internal hint was surfaced.
   if (output.includes('ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION')
-    || output.includes('ERR_PNPM_NO_MATURE_MATCHING_VERSION')) {
+    || output.includes('ERR_PNPM_NO_MATURE_MATCHING_VERSION')
+    || output.includes('ERR_PNPM_RESOLUTION_POLICY_VIOLATIONS_UNHANDLED')) {
     return {
       code: 'release-age-violation',
       recoverable: false,

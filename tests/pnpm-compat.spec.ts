@@ -59,6 +59,27 @@ describe('classifyPnpmFailure', () => {
     const violation = classifyPnpmFailure('[ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION] 1 lockfile entries failed verification:\n  is-odd@3.0.1 was published at 2018-05-31T20:04:53.306Z, within the minimumReleaseAge cutoff')
     expect(violation?.code).toBe('release-age-violation')
     expect(classifyPnpmFailure('[ERR_PNPM_NO_MATURE_MATCHING_VERSION] 1 version does not meet the minimumReleaseAge constraint:')?.code).toBe('release-age-violation')
+    // The THIRD face of the same gate, and the only one that fails after the
+    // lockfile check has already SAID yes. pnpm skips that check whenever the
+    // verification cache holds a run whose recorded window is at least as wide
+    // as the current one (`canTrustPastCheck`: `past >= current`), and the
+    // RESOLVER then applies the same policy from scratch. A re-resolved
+    // dependency that is still inside the window is reported as a
+    // `policyViolation`, and the CLI only knows how to consume that through a
+    // handler it does not wire for this call path — so it throws instead.
+    // Measured on the bundled pnpm 11.7.0 with a cached pass: verification
+    // says "passes supply-chain policies", and the very next phase dies with
+    // "2 resolution-policy violations were produced but no
+    // handleResolutionPolicyViolations callback was wired". Without the
+    // classification below the market recognized nothing here and surfaced
+    // pnpm's internal hint — a stack trace where the user needed the same
+    // "wait, or retry once with the override" answer the other two shapes get.
+    const unhandled = classifyPnpmFailure('[ERR_PNPM_RESOLUTION_POLICY_VIOLATIONS_UNHANDLED] 2 resolution-policy violations were produced but no handleResolutionPolicyViolations callback was wired to react to them.\n\nInternal: resolveDependencies needs a handleResolutionPolicyViolations callback whenever a policy that can produce violations (today: minimumReleaseAge) is active. Wire setupPolicyHandlers (in @pnpm/installing.commands) or supply a callback directly.\nProgress: resolved 242, reused 2, downloaded 0, added 0')
+    expect(unhandled?.code).toBe('release-age-violation')
+    // The sentence has to name the waiting period: nothing else in that text
+    // tells a user why an unrelated plugin refused to uninstall.
+    expect(unhandled?.message).toContain('等待期')
+    expect(unhandled?.message).toContain('retries once')
     // Unrecognized output → null, the raw text is then surfaced as-is.
     expect(classifyPnpmFailure('some other failure')).toBeNull()
   })
