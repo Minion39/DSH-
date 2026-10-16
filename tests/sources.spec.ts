@@ -82,6 +82,13 @@ describe('installTargetFor', () => {
     expect(installTargetFor({ url: 'https://gitlab.com/o/r', tarball })).toBeNull()
   })
 
+  it('keeps the market itself on its published npm package without a catalog npm mapping', () => {
+    expect(installTargetFor({ url: 'https://github.com/dsh-market/dsh-market' })).toBe('dshmarket')
+    expect(installTargetFor({ url: 'https://github.com/DSH-MARKET/DSH-MARKET', tarball })).toBe('dshmarket')
+    expect(installTargetFor({ url: 'https://github.com/dsh-market/dsh-market/tree/main/packages/other' }))
+      .toBe('github:dsh-market/dsh-market#path:/packages/other')
+  })
+
   it('refuses non-release, foreign, insecure, and malformed tarball targets', () => {
     for (const rejected of [
       'https://github.com/o/r/archive/main.tar.gz',
