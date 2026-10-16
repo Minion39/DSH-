@@ -2726,6 +2726,18 @@ export function MarketSection(props: MarketSectionProps) {
       // section remounts (#440). With no tracked install/update left, discard
       // that stale sample; the guarded restart route still handles the small
       // post-response lock-release window with its existing 409 retry.
+      //
+      // The same sample also lives in `statusRef`, and "Run now" reads it to
+      // decide whether the host is already running something. The drain used
+      // to poll /status on every tick and corrected the ref within one
+      // interval; it now polls only while a record is queued (#838), so with
+      // the queue empty this poll is the last writer — and it has just
+      // stopped. The sample then outlives the operation for as long as the
+      // section stays mounted, and the next queued row is told "another
+      // install, update or uninstall is still running" about the operation
+      // that has already finished (#845). Discard it here, beside the state
+      // copy of the same fact.
+      statusRef.current = { ...statusRef.current, busy: false }
       setHostBusy(false)
       setProgressLine(null)
       setProgressPhase(null)

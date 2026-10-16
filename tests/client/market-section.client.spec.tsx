@@ -1760,6 +1760,108 @@ describe('MarketSection (jsdom)', () => {
     }
   })
 
+  it('answers "Run now" from the operation that finished, not from the last sample (#845)', async () => {
+    // The reported path, one consumer past #440: an update completes, a later
+    // request is queued because a session is running, "Run now" plus
+    // "Continue anyway?" comes back with "another install, update or uninstall
+    // is still running" — about the operation that has just finished, and
+    // pressing it again two seconds later gets through.
+    //
+    // The sentence is answered from `statusRef`, which held the sample #440
+    // discarded from `hostBusy`. The drain used to correct it within one
+    // interval; it now polls only while a record is queued (#838), so with the
+    // queue empty the progress poll is the last writer and it has just
+    // stopped. /status is held in flight from the busy sample onwards, so
+    // nothing can correct the ref behind the assertion. Real timers, as in the
+    // drain tests below: the poll fires on a real 2 s interval and the update
+    // is settled by hand once its sample has been taken.
+    let operationStarted = false
+    let updateSettled = false
+    let busySampleTaken = false
+    let resolveUpdate!: (response: Response) => void
+    const updateResponse = new Promise<Response>((resolve) => { resolveUpdate = resolve })
+
+    const fetchMock = vi.fn((url: unknown, init?: RequestInit) => {
+      const path = String(url).split('?')[0]
+      const json = (body: unknown, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status }))
+      if (path === '/dsh-market/update') {
+        operationStarted = true
+        return updateResponse
+      }
+      if (path === '/dsh-market/registry') return json({ source: 'live', registry: REGISTRY })
+      if (path === '/dsh-market/installed') {
+        return json({
+          profile: 'web', installed: { 'dsh-loop': '^1.0.0', 'dsh-notify': '^2.0.0' },
+          live: [], disabled: [], groups: {}, groupOrder: [], favorites: [], blocked: [],
+        })
+      }
+      if (path === '/dsh-market/updates') {
+        return json({
+          updates: {
+            'dsh-loop': { kind: 'npm', version: '1.0.0', current: '1.0.0', latest: '1.2.0', updateAvailable: true },
+          },
+        })
+      }
+      if (path === '/dsh-market/status') {
+        if (busySampleTaken) return new Promise<Response>(() => { /* see above */ })
+        if (operationStarted && !updateSettled) {
+          busySampleTaken = true
+          return json({
+            active: true, busy: true, pnpm: true, boot: 'boot-1', restart: true,
+            installed: { 'dsh-loop': '^1.0.0' }, runningAgents: ['main'],
+          })
+        }
+        return json({
+          active: false, busy: false, pnpm: true, boot: 'boot-1', restart: true,
+          installed: { 'dsh-loop': '^1.0.0', 'dsh-notify': '^2.0.0' }, runningAgents: ['main'],
+        })
+      }
+      return Promise.reject(new Error(`unstubbed fetch: ${String(url)}`))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    // The state the reporter was in when the update ended: one queued row of
+    // their own — queued because a session was running — and nothing left
+    // running from this page.
+    localStorage.setItem('dshm-queue-v1', JSON.stringify([{ kind: 'uninstall', name: 'dsh-notify' }]))
+    render(<MarketSection {...props()} />)
+    await screen.findAllByText('dsh-loop')
+    fireEvent.click(screen.getByRole('button', { name: /Installed/ }))
+    fireEvent.click(await screen.findByRole('button', { name: en.update }))
+
+    // A sample is taken while the operation holds the lock, and only then is
+    // the update settled: the response lands before another poll can publish
+    // busy=false, which is the ordering #440 describes.
+    await waitFor(() => expect(busySampleTaken).toBe(true), { timeout: 8000 })
+    updateSettled = true
+    resolveUpdate(new Response(JSON.stringify({
+      ok: true,
+      activation: { 'dsh-loop': { state: 'restart', hot: false, bundle: true, reasons: ['restart to apply'] } },
+    }), { status: 200 }))
+    await waitFor(() => {
+      expect(screen.getAllByText(re(en.restartBanner)).length).toBeGreaterThan(0)
+    }, { timeout: 8000 })
+
+    // Answered the way the reporter answered it: the row, then the session
+    // warning. The row's button carries the same label as the dialog's
+    // confirm, so the second click is scoped to the dialog.
+    const rowFor = (name: string): HTMLElement => {
+      const row = [...document.querySelectorAll('[class*="opRow"]')].find(el => el.textContent?.includes(name))
+      expect(row, `no Tasks row for ${name}`).toBeTruthy()
+      return row as HTMLElement
+    }
+    fireEvent.click(within(rowFor('dsh-notify')).getByRole('button', { name: en.opUninstallNow }))
+    const confirm = await screen.findByRole('dialog', { name: re(en.agentsRunningConfirm) })
+    fireEvent.click(within(confirm).getByRole('button', { name: en.opUninstallNow }))
+
+    // It starts. Answered from the finished operation it would instead be told
+    // that another one is still running, and no request would leave.
+    await waitFor(() => expect(fetchMock.mock.calls.filter(([url, init]) =>
+      String(url).endsWith('/dsh-market/uninstall') && (init?.method ?? 'GET').toUpperCase() === 'POST',
+    )).toHaveLength(1), { timeout: 8000 })
+    expect(document.querySelector('[class*="opPanel"]')!.textContent).not.toContain(en.queuedRunBusy)
+  })
+
   it('labels a plugin loaded by the user\'s own setup as such, not as inactive (#813)', async () => {
     stubFetch({
       '/dsh-market/installed': {
