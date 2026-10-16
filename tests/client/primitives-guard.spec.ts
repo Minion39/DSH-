@@ -4,6 +4,8 @@
  * (the module itself resolves, so the bundle factory succeeds). apply()
  * must detect the gap and skip registration instead of throwing mid-render.
  */
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { apply, missingPrimitives, REQUIRED_PRIMITIVES } from '../../src/client/index.ts'
 import { ICON_ALIASES, missingIcons } from '../../src/client/icons.ts'
@@ -167,5 +169,46 @@ describe('apply() contains a throw from the host (#869)', () => {
     }
     expect(logged).toHaveLength(1)
     expect(String(logged[0][0])).toContain('[dsh-market] mounting failed')
+  })
+})
+
+/**
+ * The one icon mistake that blanks the entire page (#877).
+ *
+ * An icon named-imported from the primitives module is a bet on that exact
+ * export existing on the host, and neither `missingIcons` nor `apply()` can
+ * see it: the import is resolved by the bundler, so a host that renamed its
+ * icons leaves the binding `undefined` and React throws while rendering the
+ * component — the whole page goes white, not just the part that wanted the
+ * glyph. (The reporter's stack shows the throw escaping even the market's own
+ * boundary, because it happens during the first render of a tree the boundary
+ * has not yet mounted.)
+ *
+ * #877 was exactly that: `HostRecoveryBanner` imported `IconWarningOutline16`,
+ * which host 0.2.1-alpha.1 no longer ships (…14/…16 → …Regular, #670/#671).
+ *
+ * Icons therefore come from `./icons.ts`, whose alias table picks the name the
+ * host actually has and falls back to nothing when it has neither. The
+ * primitives module is for components (Button, Modal, …) — those are declared
+ * in REQUIRED_PRIMITIVES, and `missingPrimitives` disables the page on purpose.
+ */
+describe('no icon is named-imported from the primitives module (#877)', () => {
+  const CLIENT = join(__dirname, '..', '..', 'src', 'client')
+
+  it('resolves every icon through the alias table instead', () => {
+    const offenders: string[] = []
+    for (const name of readdirSync(CLIENT).filter(entry => /\.tsx?$/.test(entry))) {
+      const text = readFileSync(join(CLIENT, name), 'utf8')
+      for (const [, bindings] of text.matchAll(
+        /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]@deepseek-ai\/dsh-client-ui-primitives['"]/g,
+      )) {
+        for (const raw of (bindings ?? '').split(',')) {
+          const binding = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0]!.trim()
+          // `IconProps` is a type; every other name starting with Icon is a glyph.
+          if (binding !== 'IconProps' && /^Icon[A-Z]/.test(binding)) offenders.push(`${name}: ${binding}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
   })
 })
